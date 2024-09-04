@@ -5,16 +5,15 @@ import (
 	"fmt"
 	"strconv"
 	"github.com/nbd-wtf/go-nostr"
+	"github.com/nbd-wtf/go-nostr/nip44"
 )
 
 const (
-	// Regular events (last numbers match corresponding attestations).
+	// Regular events.
 	KindKeyMigration int = 50
-	KindRecoveryKeysSetup int = 51
-
-	// Parameterized replaceable events (pubkey:kind:d-tag).
-	KindKeyMigrationAttestation int = 30050
-	KindRecoveryKeysAttestation int = 30051
+	KindKeyMigrationAttestation int = 51
+	KindRecoveryKeysSetup int = 52
+	KindRecoveryKeysAttestation int = 53
 )
 
 const (
@@ -48,9 +47,63 @@ type RecoveryKeysSetup struct {
 }
 
 type RecoveryKeysAttestation struct {
+	EncryptKey []byte
+	EncryptSalt []byte
 	ForPubKey string
-	RecoveryKeysSetupId string
-	RecoveryKeysSetup string
+	SetupID string
+	SetupEvent string
+}
+
+func MakeRecoveryKeysAttestation(
+	encryptKey []byte,
+	encryptSalt []byte,
+	forPubKey string,
+	setupID string,
+	setupEvent string,
+) *RecoveryKeysAttestation {
+	attestation := &RecoveryKeysAttestation{
+		EncryptKey: encryptKey,
+		EncryptSalt: encryptSalt,
+		ForPubKey: forPubKey,
+		SetupID: setupID,
+		SetupEvent: setupEvent,
+	}
+
+	return attestation
+}
+
+func MakeRecoveryKeysAttestationEvent(
+	attestation *RecoveryKeysAttestation,
+	createdAt nostr.Timestamp) (*nostr.Event, error) {
+
+	evt := nostr.Event{}
+	evt.CreatedAt = createdAt
+	evt.Kind = KindRecoveryKeysAttestation
+
+	if len(attestation.EncryptKey) > 0 {
+		evt.Tags = make([]nostr.Tag, 0, 1)
+	} else {
+		evt.Tags = make([]nostr.Tag, 0, 2)
+		evt.Tags = evt.Tags.AppendUnique(nostr.Tag{"p", attestation.ForPubKey})
+	}
+
+	evt.Tags = evt.Tags.AppendUnique(nostr.Tag{SafeguardRecoveryKeysAttestation})
+
+	if len(attestation.EncryptKey) > 0 {
+		cyphertext, err := nip44.Encrypt(
+			attestation.SetupEvent,
+			attestation.EncryptKey,
+			nip44.WithCustomSalt(attestation.EncryptSalt))
+
+		if err != nil {
+			return nil, err
+		}
+		evt.Content = cyphertext
+	} else {
+		evt.Content = attestation.SetupEvent
+	}
+
+	return &evt, nil
 }
 
 func MakeRecoveryKeysSetupEvent(setup *RecoveryKeysSetup, createdAt nostr.Timestamp) *nostr.Event {
