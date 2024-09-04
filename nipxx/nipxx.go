@@ -117,7 +117,7 @@ func ValidateRecoveryKeysEvent(evt *nostr.Event) error {
 	}
 
 	if len(thresholds[0]) != 2 {
-		return errors.New("Threshold tag must include one value.")
+		return errors.New("Threshold tag must include only one value.")
 	}
 
 	threshold, err := strconv.Atoi(thresholds[0][1])
@@ -135,7 +135,7 @@ func ValidateRecoveryKeysEvent(evt *nostr.Event) error {
 	pubkeys := evt.Tags.GetAll([]string{"p"})
 
 	if len(pubkeys) < 1 {
-		return errors.New("Must include one or more recovery pubkeys")
+		return errors.New("Must include one or more recovery pubkeys.")
 	}
 
 	return nil
