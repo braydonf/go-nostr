@@ -57,3 +57,44 @@ func TestMakeRecoveryKeysSetupEvent(t *testing.T) {
 		assert.Equal(t, vector.JSON, string(evtjson))
 	}
 }
+
+func TestValidateRecoveryKeysEvent(t *testing.T) {
+	for _, vector := range []struct {
+		Timestamp int64
+		Kind int
+		PubKeys []string
+		Threshold  int
+		Comment string
+		JSON string
+		Error string
+	}{
+		{
+			int64(1725402764),
+			50,
+			[]string{
+				"4fe17162aa42c96d7757f98cabc8a0b38ceb61a9160195b5d16bce6f6d8064ca",
+				"8b57adf363f3abed31ea6e0b664884af07e2a92611154599345f6a63f9c70f02",
+				"741a0fb3d23db2c87f82a9a979084893c3f094c47776c1283dd313331fc4b308",
+			},
+			2,
+			"Setting up my first set of recovery keys! Yay!",
+			"{\"kind\":50,\"created_at\":1725402764,\"tags\":[[\"p\",\"4fe17162aa42c96d7757f98cabc8a0b38ceb61a9160195b5d16bce6f6d8064ca\"],[\"p\",\"8b57adf363f3abed31ea6e0b664884af07e2a92611154599345f6a63f9c70f02\"],[\"p\",\"741a0fb3d23db2c87f82a9a979084893c3f094c47776c1283dd313331fc4b308\"],[\"threshold\",\"2\"],[\"recovery-keys-setup\"]],\"content\":\"Setting up my first set of recovery keys! Yay!\"}",
+			"Invalid kind.",
+		},
+	} {
+		setup := MakeRecoveryKeysSetup(vector.PubKeys, vector.Threshold, vector.Comment)
+		evt := MakeRecoveryKeysSetupEvent(setup, nostr.Timestamp(vector.Timestamp))
+
+		if vector.Kind > 0 {
+			evt.Kind = vector.Kind
+		}
+
+		evtjson, err := json.Marshal(evt)
+		assert.Nil(t, err)
+		assert.Equal(t, vector.JSON, string(evtjson))
+
+		err = ValidateRecoveryKeysEvent(evt)
+
+		assert.Errorf(t, err, vector.Error, err)
+	}
+}

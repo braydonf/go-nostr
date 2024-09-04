@@ -86,6 +86,10 @@ func MakeRecoveryKeysSetup(
 	return setup
 }
 
+// ValidateRecoveryKeysEvent validates that the event
+// has all of the required and necessary properties
+// to be considered valid. It does not include pubkey, sig
+// or created_at validation.
 func ValidateRecoveryKeysEvent(evt *nostr.Event) error {
 	// Check the kind.
 	if evt.Kind != KindRecoveryKeysSetup {
