@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"encoding/json"
 	"github.com/nbd-wtf/go-nostr"
 	"github.com/nbd-wtf/go-nostr/nip44"
 )
@@ -11,10 +12,10 @@ import (
 const (
 	// Regular events.
 	KindKeyMigration int = 50
-	KindKeyMigrationAttestation int = 30050
+	KindRecoveryKeysSetup int = 51
 
 	// Parameterized replaceable events (pubkey:kind:d-tag).
-	KindRecoveryKeysSetup int = 51
+	KindKeyMigrationAttestation int = 30050
 	KindRecoveryKeysAttestation int = 30051
 )
 
@@ -83,28 +84,39 @@ func MakeRecoveryKeysAttestationEvent(
 	evt.Kind = KindRecoveryKeysAttestation
 
 	if len(attestation.EncryptKey) > 0 {
+		// Public safeguard tag.
 		evt.Tags = make([]nostr.Tag, 0, 1)
-	} else {
-		evt.Tags = make([]nostr.Tag, 0, 3)
-		evt.Tags = evt.Tags.AppendUnique(nostr.Tag{"p", attestation.ForPubKey})
-		evt.Tags = evt.Tags.AppendUnique(nostr.Tag{"e", attestation.SetupID})
-	}
 
-	evt.Tags = evt.Tags.AppendUnique(nostr.Tag{SafeguardRecoveryKeysAttestation})
+		// Private tags.
+		ptags := nostr.Tags(make([]nostr.Tag, 0, 3))
+		ptags = ptags.AppendUnique(nostr.Tag{"p", attestation.ForPubKey})
+		ptags = ptags.AppendUnique(nostr.Tag{"e", attestation.SetupID})
+		ptags = ptags.AppendUnique(nostr.Tag{"setup", attestation.SetupEvent})
 
-	if len(attestation.EncryptKey) > 0 {
+		tagsJSON, err := json.Marshal(ptags)
+		if err != nil {
+			return nil, err
+		}
+
 		cyphertext, err := nip44.Encrypt(
-			attestation.SetupEvent,
+			string(tagsJSON),
 			attestation.EncryptKey,
 			nip44.WithCustomSalt(attestation.EncryptSalt))
 
 		if err != nil {
 			return nil, err
 		}
+
 		evt.Content = cyphertext
 	} else {
-		evt.Content = attestation.SetupEvent
+		// Public tags for all.
+		evt.Tags = make([]nostr.Tag, 0, 4)
+		evt.Tags = evt.Tags.AppendUnique(nostr.Tag{"p", attestation.ForPubKey})
+		evt.Tags = evt.Tags.AppendUnique(nostr.Tag{"e", attestation.SetupID})
+		evt.Tags = evt.Tags.AppendUnique(nostr.Tag{"setup", attestation.SetupEvent})
 	}
+
+	evt.Tags = evt.Tags.AppendUnique(nostr.Tag{SafeguardRecoveryKeysAttestation})
 
 	return &evt, nil
 }
