@@ -62,7 +62,7 @@ func TestMakeRecoveryKeysSetupEvent(t *testing.T) {
 func TestValidateRecoveryKeysEvent(t *testing.T) {
 	for _, vector := range []struct {
 		JSON string
-		Error string
+		ExpectedError string
 	}{
 		{
 			"{\"kind\":49,\"created_at\":1725402764,\"tags\":[[\"p\",\"4fe17162aa42c96d7757f98cabc8a0b38ceb61a9160195b5d16bce6f6d8064ca\"],[\"p\",\"8b57adf363f3abed31ea6e0b664884af07e2a92611154599345f6a63f9c70f02\"],[\"p\",\"741a0fb3d23db2c87f82a9a979084893c3f094c47776c1283dd313331fc4b308\"],[\"threshold\",\"2\"],[\"recovery-keys-setup\"]],\"content\":\"\"}",
@@ -123,12 +123,12 @@ func TestValidateRecoveryKeysEvent(t *testing.T) {
 
 		err = ValidateRecoveryKeysEvent(&evt)
 
-		if vector.Error == "" {
+		if vector.ExpectedError == "" {
 			// Valid
 			assert.Nil(t, err)
 		} else {
 			// Invalid
-			assert.Errorf(t, err, vector.Error, err)
+			assert.Errorf(t, err, vector.ExpectedError, err)
 		}
 	}
 }
@@ -232,5 +232,88 @@ func TestMakeRecoveryKeyAttestationEvent(t *testing.T) {
 		evtjson, err := json.Marshal(evt)
 		assert.Nil(t, err)
 		assert.Equal(t, vector.ExpectedJSON, string(evtjson))
+	}
+}
+
+func TestValidateRecoveryKeysAttestationEvent(t *testing.T) {
+	for _, vector := range []struct {
+		JSON string
+		ExpectedError string
+	}{
+		{
+			"{\"kind\":30051,\"pubkey\":\"a706ad8f73115f90500266f273f7571df9429a4cfb4bbfbcd825227202dabad1\",\"created_at\":1725402765,\"tags\":[[\"d\",\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\"],[\"p\",\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\"],[\"e\",\"40808ce2685b0aeaa756d05fc99853db0c79043210a3a949fdbc905ea2984c05\"],[\"setup\",\"{\\\"kind\\\":51,\\\"id\\\":\\\"40808ce2685b0aeaa756d05fc99853db0c79043210a3a949fdbc905ea2984c05\\\",\\\"pubkey\\\":\\\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\\\",\\\"created_at\\\":1725402764,\\\"tags\\\":[[\\\"p\\\",\\\"4fe17162aa42c96d7757f98cabc8a0b38ceb61a9160195b5d16bce6f6d8064ca\\\"],[\\\"p\\\",\\\"8b57adf363f3abed31ea6e0b664884af07e2a92611154599345f6a63f9c70f02\\\"],[\\\"p\\\",\\\"741a0fb3d23db2c87f82a9a979084893c3f094c47776c1283dd313331fc4b308\\\"],[\\\"threshold\\\",\\\"2\\\"],[\\\"recovery-keys-setup\\\"]],\\\"content\\\":\\\"Setting up my first set of recovery keys! Yay!\\\",\\\"sig\\\":\\\"8e73482ffae5261edb5181960a8d50974de468f20ea9f505cb57812e348ee920468dbb390ab39b497e33ac9aa2e6f784305bea831b232585171ab0878c04c4b3\\\"}\"],[\"recovery-keys-attestation\"]],\"content\":\"\"}",
+			"",
+		},
+		{
+			"{\"kind\":30051,\"pubkey\":\"a706ad8f73115f90500266f273f7571df9429a4cfb4bbfbcd825227202dabad1\",\"created_at\":1725402765,\"tags\":[[\"p\",\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\"],[\"e\",\"40808ce2685b0aeaa756d05fc99853db0c79043210a3a949fdbc905ea2984c05\"],[\"setup\",\"{\\\"kind\\\":51,\\\"id\\\":\\\"40808ce2685b0aeaa756d05fc99853db0c79043210a3a949fdbc905ea2984c05\\\",\\\"pubkey\\\":\\\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\\\",\\\"created_at\\\":1725402764,\\\"tags\\\":[[\\\"p\\\",\\\"4fe17162aa42c96d7757f98cabc8a0b38ceb61a9160195b5d16bce6f6d8064ca\\\"],[\\\"p\\\",\\\"8b57adf363f3abed31ea6e0b664884af07e2a92611154599345f6a63f9c70f02\\\"],[\\\"p\\\",\\\"741a0fb3d23db2c87f82a9a979084893c3f094c47776c1283dd313331fc4b308\\\"],[\\\"threshold\\\",\\\"2\\\"],[\\\"recovery-keys-setup\\\"]],\\\"content\\\":\\\"Setting up my first set of recovery keys! Yay!\\\",\\\"sig\\\":\\\"8e73482ffae5261edb5181960a8d50974de468f20ea9f505cb57812e348ee920468dbb390ab39b497e33ac9aa2e6f784305bea831b232585171ab0878c04c4b3\\\"}\"],[\"recovery-keys-attestation\"]],\"content\":\"\"}",
+			"Must include one d tag.",
+		},
+		{
+			"{\"kind\":30051,\"pubkey\":\"a706ad8f73115f90500266f273f7571df9429a4cfb4bbfbcd825227202dabad1\",\"created_at\":1725402765,\"tags\":[[\"d\",\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\"],[\"d\",\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606ae\"],[\"p\",\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\"],[\"e\",\"40808ce2685b0aeaa756d05fc99853db0c79043210a3a949fdbc905ea2984c05\"],[\"setup\",\"{\\\"kind\\\":51,\\\"id\\\":\\\"40808ce2685b0aeaa756d05fc99853db0c79043210a3a949fdbc905ea2984c05\\\",\\\"pubkey\\\":\\\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\\\",\\\"created_at\\\":1725402764,\\\"tags\\\":[[\\\"p\\\",\\\"4fe17162aa42c96d7757f98cabc8a0b38ceb61a9160195b5d16bce6f6d8064ca\\\"],[\\\"p\\\",\\\"8b57adf363f3abed31ea6e0b664884af07e2a92611154599345f6a63f9c70f02\\\"],[\\\"p\\\",\\\"741a0fb3d23db2c87f82a9a979084893c3f094c47776c1283dd313331fc4b308\\\"],[\\\"threshold\\\",\\\"2\\\"],[\\\"recovery-keys-setup\\\"]],\\\"content\\\":\\\"Setting up my first set of recovery keys! Yay!\\\",\\\"sig\\\":\\\"8e73482ffae5261edb5181960a8d50974de468f20ea9f505cb57812e348ee920468dbb390ab39b497e33ac9aa2e6f784305bea831b232585171ab0878c04c4b3\\\"}\"],[\"recovery-keys-attestation\"]],\"content\":\"\"}",
+			"Must include one d tag.",
+		},
+		{
+			"{\"kind\":30049,\"pubkey\":\"a706ad8f73115f90500266f273f7571df9429a4cfb4bbfbcd825227202dabad1\",\"created_at\":1725402765,\"tags\":[[\"d\",\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\"],[\"p\",\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\"],[\"e\",\"40808ce2685b0aeaa756d05fc99853db0c79043210a3a949fdbc905ea2984c05\"],[\"setup\",\"{\\\"kind\\\":51,\\\"id\\\":\\\"40808ce2685b0aeaa756d05fc99853db0c79043210a3a949fdbc905ea2984c05\\\",\\\"pubkey\\\":\\\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\\\",\\\"created_at\\\":1725402764,\\\"tags\\\":[[\\\"p\\\",\\\"4fe17162aa42c96d7757f98cabc8a0b38ceb61a9160195b5d16bce6f6d8064ca\\\"],[\\\"p\\\",\\\"8b57adf363f3abed31ea6e0b664884af07e2a92611154599345f6a63f9c70f02\\\"],[\\\"p\\\",\\\"741a0fb3d23db2c87f82a9a979084893c3f094c47776c1283dd313331fc4b308\\\"],[\\\"threshold\\\",\\\"2\\\"],[\\\"recovery-keys-setup\\\"]],\\\"content\\\":\\\"Setting up my first set of recovery keys! Yay!\\\",\\\"sig\\\":\\\"8e73482ffae5261edb5181960a8d50974de468f20ea9f505cb57812e348ee920468dbb390ab39b497e33ac9aa2e6f784305bea831b232585171ab0878c04c4b3\\\"}\"],[\"recovery-keys-attestation\"]],\"content\":\"\"}",
+			"Invalid kind.",
+		},
+		{
+			"{\"kind\":30051,\"pubkey\":\"a706ad8f73115f90500266f273f7571df9429a4cfb4bbfbcd825227202dabad1\",\"created_at\":1725402765,\"tags\":[[\"d\",\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\"],[\"p\",\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\"],[\"e\",\"40808ce2685b0aeaa756d05fc99853db0c79043210a3a949fdbc905ea2984c05\"],[\"setup\",\"{\\\"kind\\\":51,\\\"id\\\":\\\"40808ce2685b0aeaa756d05fc99853db0c79043210a3a949fdbc905ea2984c05\\\",\\\"pubkey\\\":\\\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\\\",\\\"created_at\\\":1725402764,\\\"tags\\\":[[\\\"p\\\",\\\"4fe17162aa42c96d7757f98cabc8a0b38ceb61a9160195b5d16bce6f6d8064ca\\\"],[\\\"p\\\",\\\"8b57adf363f3abed31ea6e0b664884af07e2a92611154599345f6a63f9c70f02\\\"],[\\\"p\\\",\\\"741a0fb3d23db2c87f82a9a979084893c3f094c47776c1283dd313331fc4b308\\\"],[\\\"threshold\\\",\\\"2\\\"],[\\\"recovery-keys-setup\\\"]],\\\"content\\\":\\\"Setting up my first set of recovery keys! Yay!\\\",\\\"sig\\\":\\\"8e73482ffae5261edb5181960a8d50974de468f20ea9f505cb57812e348ee920468dbb390ab39b497e33ac9aa2e6f784305bea831b232585171ab0878c04c4b3\\\"}\"]],\"content\":\"\"}",
+			"Must include one safeguard tag.",
+		},
+		{
+			"{\"kind\":30051,\"pubkey\":\"a706ad8f73115f90500266f273f7571df9429a4cfb4bbfbcd825227202dabad1\",\"created_at\":1725402765,\"tags\":[[\"d\",\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\"],[\"p\",\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\"],[\"e\",\"40808ce2685b0aeaa756d05fc99853db0c79043210a3a949fdbc905ea2984c05\"],[\"setup\",\"{\\\"kind\\\":51,\\\"id\\\":\\\"40808ce2685b0aeaa756d05fc99853db0c79043210a3a949fdbc905ea2984c05\\\",\\\"pubkey\\\":\\\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\\\",\\\"created_at\\\":1725402764,\\\"tags\\\":[[\\\"p\\\",\\\"4fe17162aa42c96d7757f98cabc8a0b38ceb61a9160195b5d16bce6f6d8064ca\\\"],[\\\"p\\\",\\\"8b57adf363f3abed31ea6e0b664884af07e2a92611154599345f6a63f9c70f02\\\"],[\\\"p\\\",\\\"741a0fb3d23db2c87f82a9a979084893c3f094c47776c1283dd313331fc4b308\\\"],[\\\"threshold\\\",\\\"2\\\"],[\\\"recovery-keys-setup\\\"]],\\\"content\\\":\\\"Setting up my first set of recovery keys! Yay!\\\",\\\"sig\\\":\\\"8e73482ffae5261edb5181960a8d50974de468f20ea9f505cb57812e348ee920468dbb390ab39b497e33ac9aa2e6f784305bea831b232585171ab0878c04c4b3\\\"}\"],[\"recovery-keys-attestation\"],[\"recovery-keys-attestation\"]],\"content\":\"\"}",
+			"Must include one safeguard tag.",
+		},
+		{
+			"{\"kind\":30051,\"pubkey\":\"a706ad8f73115f90500266f273f7571df9429a4cfb4bbfbcd825227202dabad1\",\"created_at\":1725402765,\"tags\":[[\"d\",\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\"],[\"p\",\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\"],[\"e\",\"40808ce2685b0aeaa756d05fc99853db0c79043210a3a949fdbc905ea2984c05\"],[\"recovery-keys-attestation\"]],\"content\":\"\"}",
+			"Public attestation must include public tags.",
+		},
+		{
+			"{\"kind\":30051,\"pubkey\":\"a706ad8f73115f90500266f273f7571df9429a4cfb4bbfbcd825227202dabad1\",\"created_at\":1725402765,\"tags\":[[\"d\",\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\"],[\"p\",\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\"],[\"setup\",\"{\\\"kind\\\":51,\\\"id\\\":\\\"40808ce2685b0aeaa756d05fc99853db0c79043210a3a949fdbc905ea2984c05\\\",\\\"pubkey\\\":\\\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\\\",\\\"created_at\\\":1725402764,\\\"tags\\\":[[\\\"p\\\",\\\"4fe17162aa42c96d7757f98cabc8a0b38ceb61a9160195b5d16bce6f6d8064ca\\\"],[\\\"p\\\",\\\"8b57adf363f3abed31ea6e0b664884af07e2a92611154599345f6a63f9c70f02\\\"],[\\\"p\\\",\\\"741a0fb3d23db2c87f82a9a979084893c3f094c47776c1283dd313331fc4b308\\\"],[\\\"threshold\\\",\\\"2\\\"],[\\\"recovery-keys-setup\\\"]],\\\"content\\\":\\\"Setting up my first set of recovery keys! Yay!\\\",\\\"sig\\\":\\\"8e73482ffae5261edb5181960a8d50974de468f20ea9f505cb57812e348ee920468dbb390ab39b497e33ac9aa2e6f784305bea831b232585171ab0878c04c4b3\\\"}\"],[\"recovery-keys-attestation\"]],\"content\":\"\"}",
+			"Public attestation must include public tags.",
+		},
+		{
+			"{\"kind\":30051,\"pubkey\":\"a706ad8f73115f90500266f273f7571df9429a4cfb4bbfbcd825227202dabad1\",\"created_at\":1725402765,\"tags\":[[\"d\",\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\"],[\"e\",\"40808ce2685b0aeaa756d05fc99853db0c79043210a3a949fdbc905ea2984c05\"],[\"setup\",\"{\\\"kind\\\":51,\\\"id\\\":\\\"40808ce2685b0aeaa756d05fc99853db0c79043210a3a949fdbc905ea2984c05\\\",\\\"pubkey\\\":\\\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\\\",\\\"created_at\\\":1725402764,\\\"tags\\\":[[\\\"p\\\",\\\"4fe17162aa42c96d7757f98cabc8a0b38ceb61a9160195b5d16bce6f6d8064ca\\\"],[\\\"p\\\",\\\"8b57adf363f3abed31ea6e0b664884af07e2a92611154599345f6a63f9c70f02\\\"],[\\\"p\\\",\\\"741a0fb3d23db2c87f82a9a979084893c3f094c47776c1283dd313331fc4b308\\\"],[\\\"threshold\\\",\\\"2\\\"],[\\\"recovery-keys-setup\\\"]],\\\"content\\\":\\\"Setting up my first set of recovery keys! Yay!\\\",\\\"sig\\\":\\\"8e73482ffae5261edb5181960a8d50974de468f20ea9f505cb57812e348ee920468dbb390ab39b497e33ac9aa2e6f784305bea831b232585171ab0878c04c4b3\\\"}\"],[\"recovery-keys-attestation\"]],\"content\":\"\"}",
+			"Public attestation must include public tags.",
+		},
+		{
+			"{\"kind\":30051,\"id\":\"0aa62d8cff27cc19843c775817ceefacb57c897939aff2439786baeaa31d9826\",\"pubkey\":\"a706ad8f73115f90500266f273f7571df9429a4cfb4bbfbcd825227202dabad1\",\"created_at\":1725402765,\"tags\":[[\"d\",\"442427cc2ef69f8b15b823327b3cd2e94daac101a8ff89c7d3bdbd35bb64e939\"],[\"recovery-keys-attestation\"]],\"content\":\"Av//////////////////////////////////////////ZKqMK1a+YsQxv2pOJvaqQJYCS/nd89hQ+HsMDc0ltpAw8bnHKnl5TiHH9qm3coDsyQTVybJkDch+tl+FlbELRcPkIGqxICUDp5lPzj/u23/+VseJaziv+HU0S6/bS5IAbewdzekaN8H4NNAx/nCWzps0s5cm+PetZkdydJv875Aoh71gWF7u5BFZ1Kr1j8XXnBIzzvBA4kGGzusD0CTyUzZqlXV9OTBzi+1cU0qXR3pRroLCDP3EZ4gemFtK26wqxpg2lIjomkYTcuw8JqX4G2AjcsL9knlqUYKZwBrSe87QgWD3Q0Cy1dBGPmU9OZL6FPpYS7hZMzFWTfvalaoCeCAW1kdFeqIQ2ddX81ksD2QsUFNpLLwQxFKHSpqwgkWq9bpPGxdG8ECV9u218dLuJXFSKFGVVJG2iX8qjIXaBHjkOfmPzuJuho5r1UP7gAopffY7TrZxV1yRaHIXHyGZJDQgbHbi1ssfkq1k9jEbsZlxDM5zwLx1nDYhmob21nR/DhdA8U3OFHvJvzCA5bHBX3nMiY2pYGyNT46WP0anvRpCjezaP/0AD9hkrBqV1eXFeDYkcKKcmAWmvl/AkY+0C7qKxj+L5vAPH6VXBFeZpvTHuovl1ZXS4jHW4su/qV94DaleK55Ddn7zwNsAXCEstCm0TkZmePfkspW8UFe68LQRvbGOheHGpgpUyAxojSB9eMa4F8uQwAYYrf489h+VNy3jQGHRX2z6QXARGo/uHAR7843KCScymyrbWbTCOLXiFhuSI+HS7ag0TXqOw22h+6j7A1KH01E/4ln/EN7v1cOiYv94m5aAiXKVBZVakzwhbZTEsvkc3657h9VZi7Qw0mbwDoSQIyGKX7ZmMKkoRZOaSjbUWbXEZPbh6wnflmnzeP/+qAGhNbB/kzP2G5Nz7YV9kA+f1upnyOG6KXGKJntgn6DIItjU6MuNw2VM3OYdh5DS5xlezQMzx3TJRTo08TAvfEMM/SjoND1TE5PcyhBKXYaBG+eRsEbutc5t4+gqt69W8erzmFRJL3klGJ2kft5RXFD5enrF2om1OXrkaU7o/DKzPy8/38begooZGhXjR0Ruj+ahNHsca6PL0/UQ84AaxpDzZ3lDN0vNSkmEJGrLzxjhqKGYljPMYa6VUgRg2/xvyqB7YUx+m4dUgpSz0bbGdXqHTYab8zLjupPHvxx2FvOdCRYOAygwq0qO/vUWaE/vn78COwPe78BUA8HNOGTA\",\"sig\":\"dd531aa2d853b4a242167d6b8b731b1b7af56ecccb47b7488ebf276ade4dc6fe02e09e3b0fb8545310fe7a89dc0f9c8debbf6897e0d31986e67535ec603e0449\"}",
+			"",
+		},
+		{
+			"{\"kind\":30051,\"id\":\"0aa62d8cff27cc19843c775817ceefacb57c897939aff2439786baeaa31d9826\",\"pubkey\":\"a706ad8f73115f90500266f273f7571df9429a4cfb4bbfbcd825227202dabad1\",\"created_at\":1725402765,\"tags\":[[\"d\",\"442427cc2ef69f8b15b823327b3cd2e94daac101a8ff89c7d3bdbd35bb64e939\"],[\"recovery-keys-attestation\"]],\"content\":\"\"}",
+			"Public attestation must include public tags.",
+		},
+		{
+			"{\"kind\":30051,\"id\":\"0aa62d8cff27cc19843c775817ceefacb57c897939aff2439786baeaa31d9826\",\"pubkey\":\"a706ad8f73115f90500266f273f7571df9429a4cfb4bbfbcd825227202dabad1\",\"created_at\":1725402765,\"tags\":[[\"d\",\"442427cc2ef69f8b15b823327b3cd2e94daac101a8ff89c7d3bdbd35bb64e939\"],[\"recovery-keys-attestation\"]],\"content\":\"Something not base64 encoded.\"}",
+			"Private content must be base64.",
+		},
+		{
+			"{\"kind\":30051,\"id\":\"0aa62d8cff27cc19843c775817ceefacb57c897939aff2439786baeaa31d9826\",\"pubkey\":\"a706ad8f73115f90500266f273f7571df9429a4cfb4bbfbcd825227202dabad1\",\"created_at\":1725402765,\"tags\":[[\"d\",\"442427cc2ef69f8b15b823327b3cd2e94daac101a8ff89c7d3bdbd35bb64e939\"],[\"setup\",\"{\\\"kind\\\":51,\\\"id\\\":\\\"40808ce2685b0aeaa756d05fc99853db0c79043210a3a949fdbc905ea2984c05\\\",\\\"pubkey\\\":\\\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\\\",\\\"created_at\\\":1725402764,\\\"tags\\\":[[\\\"p\\\",\\\"4fe17162aa42c96d7757f98cabc8a0b38ceb61a9160195b5d16bce6f6d8064ca\\\"],[\\\"p\\\",\\\"8b57adf363f3abed31ea6e0b664884af07e2a92611154599345f6a63f9c70f02\\\"],[\\\"p\\\",\\\"741a0fb3d23db2c87f82a9a979084893c3f094c47776c1283dd313331fc4b308\\\"],[\\\"threshold\\\",\\\"2\\\"],[\\\"recovery-keys-setup\\\"]],\\\"content\\\":\\\"Setting up my first set of recovery keys! Yay!\\\",\\\"sig\\\":\\\"8e73482ffae5261edb5181960a8d50974de468f20ea9f505cb57812e348ee920468dbb390ab39b497e33ac9aa2e6f784305bea831b232585171ab0878c04c4b3\\\"}\"],[\"recovery-keys-attestation\"]],\"content\":\"Av//////////////////////////////////////////ZKqMK1a+YsQxv2pOJvaqQJYCS/nd89hQ+HsMDc0ltpAw8bnHKnl5TiHH9qm3coDsyQTVybJkDch+tl+FlbELRcPkIGqxICUDp5lPzj/u23/+VseJaziv+HU0S6/bS5IAbewdzekaN8H4NNAx/nCWzps0s5cm+PetZkdydJv875Aoh71gWF7u5BFZ1Kr1j8XXnBIzzvBA4kGGzusD0CTyUzZqlXV9OTBzi+1cU0qXR3pRroLCDP3EZ4gemFtK26wqxpg2lIjomkYTcuw8JqX4G2AjcsL9knlqUYKZwBrSe87QgWD3Q0Cy1dBGPmU9OZL6FPpYS7hZMzFWTfvalaoCeCAW1kdFeqIQ2ddX81ksD2QsUFNpLLwQxFKHSpqwgkWq9bpPGxdG8ECV9u218dLuJXFSKFGVVJG2iX8qjIXaBHjkOfmPzuJuho5r1UP7gAopffY7TrZxV1yRaHIXHyGZJDQgbHbi1ssfkq1k9jEbsZlxDM5zwLx1nDYhmob21nR/DhdA8U3OFHvJvzCA5bHBX3nMiY2pYGyNT46WP0anvRpCjezaP/0AD9hkrBqV1eXFeDYkcKKcmAWmvl/AkY+0C7qKxj+L5vAPH6VXBFeZpvTHuovl1ZXS4jHW4su/qV94DaleK55Ddn7zwNsAXCEstCm0TkZmePfkspW8UFe68LQRvbGOheHGpgpUyAxojSB9eMa4F8uQwAYYrf489h+VNy3jQGHRX2z6QXARGo/uHAR7843KCScymyrbWbTCOLXiFhuSI+HS7ag0TXqOw22h+6j7A1KH01E/4ln/EN7v1cOiYv94m5aAiXKVBZVakzwhbZTEsvkc3657h9VZi7Qw0mbwDoSQIyGKX7ZmMKkoRZOaSjbUWbXEZPbh6wnflmnzeP/+qAGhNbB/kzP2G5Nz7YV9kA+f1upnyOG6KXGKJntgn6DIItjU6MuNw2VM3OYdh5DS5xlezQMzx3TJRTo08TAvfEMM/SjoND1TE5PcyhBKXYaBG+eRsEbutc5t4+gqt69W8erzmFRJL3klGJ2kft5RXFD5enrF2om1OXrkaU7o/DKzPy8/38begooZGhXjR0Ruj+ahNHsca6PL0/UQ84AaxpDzZ3lDN0vNSkmEJGrLzxjhqKGYljPMYa6VUgRg2/xvyqB7YUx+m4dUgpSz0bbGdXqHTYab8zLjupPHvxx2FvOdCRYOAygwq0qO/vUWaE/vn78COwPe78BUA8HNOGTA\",\"sig\":\"dd531aa2d853b4a242167d6b8b731b1b7af56ecccb47b7488ebf276ade4dc6fe02e09e3b0fb8545310fe7a89dc0f9c8debbf6897e0d31986e67535ec603e0449\"}",
+			"Private attestation must not include public tags.",
+		},
+		{
+			"{\"kind\":30051,\"id\":\"0aa62d8cff27cc19843c775817ceefacb57c897939aff2439786baeaa31d9826\",\"pubkey\":\"a706ad8f73115f90500266f273f7571df9429a4cfb4bbfbcd825227202dabad1\",\"created_at\":1725402765,\"tags\":[[\"d\",\"442427cc2ef69f8b15b823327b3cd2e94daac101a8ff89c7d3bdbd35bb64e939\"],[\"e\",\"40808ce2685b0aeaa756d05fc99853db0c79043210a3a949fdbc905ea2984c05\"],[\"recovery-keys-attestation\"]],\"content\":\"Av//////////////////////////////////////////ZKqMK1a+YsQxv2pOJvaqQJYCS/nd89hQ+HsMDc0ltpAw8bnHKnl5TiHH9qm3coDsyQTVybJkDch+tl+FlbELRcPkIGqxICUDp5lPzj/u23/+VseJaziv+HU0S6/bS5IAbewdzekaN8H4NNAx/nCWzps0s5cm+PetZkdydJv875Aoh71gWF7u5BFZ1Kr1j8XXnBIzzvBA4kGGzusD0CTyUzZqlXV9OTBzi+1cU0qXR3pRroLCDP3EZ4gemFtK26wqxpg2lIjomkYTcuw8JqX4G2AjcsL9knlqUYKZwBrSe87QgWD3Q0Cy1dBGPmU9OZL6FPpYS7hZMzFWTfvalaoCeCAW1kdFeqIQ2ddX81ksD2QsUFNpLLwQxFKHSpqwgkWq9bpPGxdG8ECV9u218dLuJXFSKFGVVJG2iX8qjIXaBHjkOfmPzuJuho5r1UP7gAopffY7TrZxV1yRaHIXHyGZJDQgbHbi1ssfkq1k9jEbsZlxDM5zwLx1nDYhmob21nR/DhdA8U3OFHvJvzCA5bHBX3nMiY2pYGyNT46WP0anvRpCjezaP/0AD9hkrBqV1eXFeDYkcKKcmAWmvl/AkY+0C7qKxj+L5vAPH6VXBFeZpvTHuovl1ZXS4jHW4su/qV94DaleK55Ddn7zwNsAXCEstCm0TkZmePfkspW8UFe68LQRvbGOheHGpgpUyAxojSB9eMa4F8uQwAYYrf489h+VNy3jQGHRX2z6QXARGo/uHAR7843KCScymyrbWbTCOLXiFhuSI+HS7ag0TXqOw22h+6j7A1KH01E/4ln/EN7v1cOiYv94m5aAiXKVBZVakzwhbZTEsvkc3657h9VZi7Qw0mbwDoSQIyGKX7ZmMKkoRZOaSjbUWbXEZPbh6wnflmnzeP/+qAGhNbB/kzP2G5Nz7YV9kA+f1upnyOG6KXGKJntgn6DIItjU6MuNw2VM3OYdh5DS5xlezQMzx3TJRTo08TAvfEMM/SjoND1TE5PcyhBKXYaBG+eRsEbutc5t4+gqt69W8erzmFRJL3klGJ2kft5RXFD5enrF2om1OXrkaU7o/DKzPy8/38begooZGhXjR0Ruj+ahNHsca6PL0/UQ84AaxpDzZ3lDN0vNSkmEJGrLzxjhqKGYljPMYa6VUgRg2/xvyqB7YUx+m4dUgpSz0bbGdXqHTYab8zLjupPHvxx2FvOdCRYOAygwq0qO/vUWaE/vn78COwPe78BUA8HNOGTA\",\"sig\":\"dd531aa2d853b4a242167d6b8b731b1b7af56ecccb47b7488ebf276ade4dc6fe02e09e3b0fb8545310fe7a89dc0f9c8debbf6897e0d31986e67535ec603e0449\"}",
+			"Private attestation must not include public tags.",
+		},
+		{
+			"{\"kind\":30051,\"id\":\"0aa62d8cff27cc19843c775817ceefacb57c897939aff2439786baeaa31d9826\",\"pubkey\":\"a706ad8f73115f90500266f273f7571df9429a4cfb4bbfbcd825227202dabad1\",\"created_at\":1725402765,\"tags\":[[\"d\",\"442427cc2ef69f8b15b823327b3cd2e94daac101a8ff89c7d3bdbd35bb64e939\"],[\"p\",\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\"],[\"recovery-keys-attestation\"]],\"content\":\"Av//////////////////////////////////////////ZKqMK1a+YsQxv2pOJvaqQJYCS/nd89hQ+HsMDc0ltpAw8bnHKnl5TiHH9qm3coDsyQTVybJkDch+tl+FlbELRcPkIGqxICUDp5lPzj/u23/+VseJaziv+HU0S6/bS5IAbewdzekaN8H4NNAx/nCWzps0s5cm+PetZkdydJv875Aoh71gWF7u5BFZ1Kr1j8XXnBIzzvBA4kGGzusD0CTyUzZqlXV9OTBzi+1cU0qXR3pRroLCDP3EZ4gemFtK26wqxpg2lIjomkYTcuw8JqX4G2AjcsL9knlqUYKZwBrSe87QgWD3Q0Cy1dBGPmU9OZL6FPpYS7hZMzFWTfvalaoCeCAW1kdFeqIQ2ddX81ksD2QsUFNpLLwQxFKHSpqwgkWq9bpPGxdG8ECV9u218dLuJXFSKFGVVJG2iX8qjIXaBHjkOfmPzuJuho5r1UP7gAopffY7TrZxV1yRaHIXHyGZJDQgbHbi1ssfkq1k9jEbsZlxDM5zwLx1nDYhmob21nR/DhdA8U3OFHvJvzCA5bHBX3nMiY2pYGyNT46WP0anvRpCjezaP/0AD9hkrBqV1eXFeDYkcKKcmAWmvl/AkY+0C7qKxj+L5vAPH6VXBFeZpvTHuovl1ZXS4jHW4su/qV94DaleK55Ddn7zwNsAXCEstCm0TkZmePfkspW8UFe68LQRvbGOheHGpgpUyAxojSB9eMa4F8uQwAYYrf489h+VNy3jQGHRX2z6QXARGo/uHAR7843KCScymyrbWbTCOLXiFhuSI+HS7ag0TXqOw22h+6j7A1KH01E/4ln/EN7v1cOiYv94m5aAiXKVBZVakzwhbZTEsvkc3657h9VZi7Qw0mbwDoSQIyGKX7ZmMKkoRZOaSjbUWbXEZPbh6wnflmnzeP/+qAGhNbB/kzP2G5Nz7YV9kA+f1upnyOG6KXGKJntgn6DIItjU6MuNw2VM3OYdh5DS5xlezQMzx3TJRTo08TAvfEMM/SjoND1TE5PcyhBKXYaBG+eRsEbutc5t4+gqt69W8erzmFRJL3klGJ2kft5RXFD5enrF2om1OXrkaU7o/DKzPy8/38begooZGhXjR0Ruj+ahNHsca6PL0/UQ84AaxpDzZ3lDN0vNSkmEJGrLzxjhqKGYljPMYa6VUgRg2/xvyqB7YUx+m4dUgpSz0bbGdXqHTYab8zLjupPHvxx2FvOdCRYOAygwq0qO/vUWaE/vn78COwPe78BUA8HNOGTA\",\"sig\":\"dd531aa2d853b4a242167d6b8b731b1b7af56ecccb47b7488ebf276ade4dc6fe02e09e3b0fb8545310fe7a89dc0f9c8debbf6897e0d31986e67535ec603e0449\"}",
+			"Private attestation must not include public tags.",
+		},
+	} {
+		var evt nostr.Event
+		err := json.Unmarshal([]byte(vector.JSON), &evt)
+		assert.Nil(t, err)
+
+		err = ValidateRecoveryKeysAttestationEvent(&evt)
+
+		if vector.ExpectedError == "" {
+			// Valid
+			assert.Nil(t, err)
+		} else {
+			// Invalid
+			assert.Errorf(t, err, vector.ExpectedError, err)
+		}
+
 	}
 }

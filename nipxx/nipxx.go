@@ -162,14 +162,32 @@ func ValidateRecoveryKeysAttestationEvent(evt *nostr.Event) error {
 		return errors.New("Safeguard must not include a value.")
 	}
 
-	// Content should not be empty.
-	if len(evt.Content) == 0 {
-		return errors.New("Content should not be empty.")
+	// Must include one d tag.
+	lenDtags := len(evt.Tags.GetAll([]string{"d"}))
+	if lenDtags == 0 || lenDtags > 1 {
+		return errors.New("Must include one d tag.")
 	}
 
-	// Content should be encrypted (base64) if missing the `p` tag (private).
+	if len(evt.Content) > 0 {
+		// If content is non-empty (private), public tags must not be included.
+		if len(evt.Tags.GetAll([]string{"p"})) > 0 ||
+			len(evt.Tags.GetAll([]string{"e"})) > 0 ||
+			len(evt.Tags.GetAll([]string{"setup"})) > 0 {
+			return errors.New("Private attestation must not include public tags.")
+		}
 
-	// Content should be plaintext if the `p`tag is included (public).
+		// Content, if available, must be base64 encoded.
+		_, err := base64.StdEncoding.DecodeString(evt.Content)
+		if err != nil {
+			return errors.New("Private content must be base64.")
+		}
+	} else {
+		if len(evt.Tags.GetAll([]string{"p"})) == 0 ||
+			len(evt.Tags.GetAll([]string{"e"})) == 0 ||
+			len(evt.Tags.GetAll([]string{"setup"})) == 0 {
+			return errors.New("Public attestation must include public tags.")
+		}
+	}
 
 	return nil
 }
