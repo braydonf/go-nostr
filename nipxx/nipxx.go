@@ -11,9 +11,11 @@ import (
 const (
 	// Regular events.
 	KindKeyMigration int = 50
-	KindKeyMigrationAttestation int = 51
-	KindRecoveryKeysSetup int = 52
-	KindRecoveryKeysAttestation int = 53
+	KindKeyMigrationAttestation int = 30050
+
+	// Parameterized replaceable events (pubkey:kind:d-tag).
+	KindRecoveryKeysSetup int = 51
+	KindRecoveryKeysAttestation int = 30051
 )
 
 const (
@@ -83,8 +85,9 @@ func MakeRecoveryKeysAttestationEvent(
 	if len(attestation.EncryptKey) > 0 {
 		evt.Tags = make([]nostr.Tag, 0, 1)
 	} else {
-		evt.Tags = make([]nostr.Tag, 0, 2)
+		evt.Tags = make([]nostr.Tag, 0, 3)
 		evt.Tags = evt.Tags.AppendUnique(nostr.Tag{"p", attestation.ForPubKey})
+		evt.Tags = evt.Tags.AppendUnique(nostr.Tag{"e", attestation.SetupID})
 	}
 
 	evt.Tags = evt.Tags.AppendUnique(nostr.Tag{SafeguardRecoveryKeysAttestation})
@@ -104,6 +107,36 @@ func MakeRecoveryKeysAttestationEvent(
 	}
 
 	return &evt, nil
+}
+
+func ValidateRecoveryKeysAttestationEvent(evt *nostr.Event) error {
+	// Check the kind.
+	if evt.Kind != KindRecoveryKeysAttestation {
+		return errors.New("Invalid kind.")
+	}
+
+	// Check the safeguard tag to verify that it has
+	// been included correctly.
+	safeguard := evt.Tags.GetAll([]string{SafeguardRecoveryKeysAttestation})
+
+	if len(safeguard) != 1 {
+		return errors.New("Must include one safeguard tag.")
+	}
+
+	if len(safeguard[0]) != 1 {
+		return errors.New("Safeguard must not include a value.")
+	}
+
+	// Content should not be empty.
+	if len(evt.Content) == 0 {
+		return errors.New("Content should not be empty.")
+	}
+
+	// Content should be encrypted (base64) if missing the `p` tag (private).
+
+	// Content should be plaintext if the `p`tag is included (public).
+
+	return nil
 }
 
 func MakeRecoveryKeysSetupEvent(setup *RecoveryKeysSetup, createdAt nostr.Timestamp) *nostr.Event {
