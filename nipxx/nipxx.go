@@ -1,10 +1,12 @@
 package nipxx
 
 import (
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"strconv"
 	"encoding/json"
+	"encoding/base64"
 	"github.com/nbd-wtf/go-nostr"
 	"github.com/nbd-wtf/go-nostr/nip44"
 )
@@ -85,7 +87,27 @@ func MakeRecoveryKeysAttestationEvent(
 
 	if len(attestation.EncryptKey) > 0 {
 		// Public safeguard tag.
-		evt.Tags = make([]nostr.Tag, 0, 1)
+		evt.Tags = make([]nostr.Tag, 0, 2)
+
+		// Deterministic private d-tag.
+		cypherpub, err := nip44.Encrypt(
+			attestation.ForPubKey,
+			attestation.EncryptKey,
+			nip44.WithCustomSalt(attestation.EncryptSalt))
+
+		if err != nil {
+			return nil, err
+		}
+
+		cypherbytes, err := base64.StdEncoding.DecodeString(cypherpub)
+
+		if err != nil {
+			return nil, err
+		}
+
+		cyphersum := fmt.Sprintf("%x", sha256.Sum256(cypherbytes))
+
+		evt.Tags = evt.Tags.AppendUnique(nostr.Tag{"d", cyphersum})
 
 		// Private tags.
 		ptags := nostr.Tags(make([]nostr.Tag, 0, 3))
@@ -110,7 +132,8 @@ func MakeRecoveryKeysAttestationEvent(
 		evt.Content = cyphertext
 	} else {
 		// Public tags for all.
-		evt.Tags = make([]nostr.Tag, 0, 4)
+		evt.Tags = make([]nostr.Tag, 0, 5)
+		evt.Tags = evt.Tags.AppendUnique(nostr.Tag{"d", attestation.ForPubKey})
 		evt.Tags = evt.Tags.AppendUnique(nostr.Tag{"p", attestation.ForPubKey})
 		evt.Tags = evt.Tags.AppendUnique(nostr.Tag{"e", attestation.SetupID})
 		evt.Tags = evt.Tags.AppendUnique(nostr.Tag{"setup", attestation.SetupEvent})
