@@ -8,12 +8,48 @@ import (
 	"github.com/nbd-wtf/go-nostr"
 )
 
+func TestMakeKeyMigrationAndRevocation(t *testing.T) {
+	for _, vector := range []struct {
+		PubKey string
+		NewPubKey string
+		Comment string
+	}{
+		{
+			"0000000000000000000000000000000000000000000000000000000000000000",
+			"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+			"This is an optional comment.",
+		},
+		{
+			"0000000000000000000000000000000000000000000000000000000000000000",
+			"",
+			"There is no migration here, just a revocation.",
+		},
+	} {
+		migration := MakeKeyMigrationAndRevocation(
+			vector.PubKey,
+			vector.NewPubKey,
+			vector.Comment)
+
+		assert.Equal(t, vector.PubKey, migration.PubKey)
+		assert.Equal(t, vector.NewPubKey, migration.NewPubKey)
+		assert.Equal(t, vector.Comment, migration.Comment)
+	}
+}
+
+func TestMakeKeyMigrationAndRevocationEvent(t *testing.T) {
+
+}
+
+func TestValidateKeyMigrationAndRevocationEvent(t *testing.T) {
+
+}
+
 func TestMakeRecoveryKeysSetup(t *testing.T) {
 	for _, vector := range []struct {
 		PubKeys []string
 		Threshold  int
 		Comment string
-	}{
+	} {
 		{[]string{"4fe17162aa42c96d7757f98cabc8a0b38ceb61a9160195b5d16bce6f6d8064ca", "8b57adf363f3abed31ea6e0b664884af07e2a92611154599345f6a63f9c70f02", "741a0fb3d23db2c87f82a9a979084893c3f094c47776c1283dd313331fc4b308"}, 2, "Setting up my first set of recovery keys! Yay!"},
 		{[]string{"4fe17162aa42c96d7757f98cabc8a0b38ceb61a9160195b5d16bce6f6d8064ca", "8b57adf363f3abed31ea6e0b664884af07e2a92611154599345f6a63f9c70f02", "741a0fb3d23db2c87f82a9a979084893c3f094c47776c1283dd313331fc4b308"}, 0, "Doing something illogical!"},
 	} {

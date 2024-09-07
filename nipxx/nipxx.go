@@ -29,20 +29,18 @@ const (
 	SafeguardRecoveryKeysAttestation string = "recovery-keys-attestation"
 )
 
-type KeyMigration struct {
-	ID string
-	OldPubKey string
+type KeyMigrationAndRevocation struct {
+	PubKey string
 	NewPubKey string
-	RecoveryKeysSetupId string
-	RecoveryKeysSetupEvent string
-	RecoveryKeysSignatures string
+	Comment string
 }
 
 type KeyMigrationAttestation struct {
-	OldPubKey string
+	EncryptKey []byte
+	EncryptSalt []byte
+	ForPubKey string
 	NewPubKey string
-	KeyMigrationId string
-	KeyMigration string
+	KeyMigrationAndRevocationId string
 }
 
 type RecoveryKeysSetup struct {
@@ -57,6 +55,31 @@ type RecoveryKeysAttestation struct {
 	ForPubKey string
 	SetupID string
 	SetupEvent string
+}
+
+func MakeKeyMigrationAndRevocation(
+	pubKey string,
+	newPubKey string,
+	comment string) *KeyMigrationAndRevocation {
+
+	migration := &KeyMigrationAndRevocation{
+		PubKey: pubKey,
+		NewPubKey: newPubKey,
+		Comment: comment,
+	}
+
+	return migration
+}
+
+func MakeKeyMigrationAndRevocationEvent(
+	migration *KeyMigrationAndRevocation,
+	createdAt nostr.Timestamp) *nostr.Event {
+
+	return nil
+}
+
+func ValidateKeyMigrationAndRevocationEvent(evt *nostr.Event) error {
+	return nil
 }
 
 func MakeRecoveryKeysAttestation(
@@ -192,7 +215,10 @@ func ValidateRecoveryKeysAttestationEvent(evt *nostr.Event) error {
 	return nil
 }
 
-func MakeRecoveryKeysSetupEvent(setup *RecoveryKeysSetup, createdAt nostr.Timestamp) *nostr.Event {
+func MakeRecoveryKeysSetupEvent(
+	setup *RecoveryKeysSetup,
+	createdAt nostr.Timestamp) *nostr.Event {
+
 	evt := nostr.Event{}
 	evt.CreatedAt = createdAt
 	evt.Kind = KindRecoveryKeysSetup
