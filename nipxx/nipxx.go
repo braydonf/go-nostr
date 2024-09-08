@@ -149,6 +149,34 @@ func EventSignExternal(
 }
 
 func ValidateKeyMigrationAndRevocationEvent(evt *nostr.Event) error {
+	// Check the kind.
+	if evt.Kind != KindKeyMigrationAndRevocation {
+		return errors.New("Invalid kind.")
+	}
+
+	newKey := evt.Tags.GetAll([]string{"new-key"})
+
+	// There are two paths, one with a new-key and another without.
+	// If there is a new-key then this is a migration and revocation, if there
+	// isn't then this is only a revocation.
+	if len(newKey) > 0 {
+		if len(newKey) > 1 {
+			return errors.New("Must only include one new key.")
+		}
+
+		// Check the safeguard for a key migration as a new key is
+		// included with the event.
+		safeguardLength := len(evt.Tags.GetAll([]string{"key-migration"}))
+		if safeguardLength < 1 || safeguardLength > 1 {
+			return errors.New("Must include migration safeguard tag.")
+		}
+	} else {
+		safeguardLength := len(evt.Tags.GetAll([]string{"key-revocation"}))
+		if safeguardLength < 1 || safeguardLength > 1 {
+			return errors.New("Must include revocation safeguard tag.")
+		}
+	}
+
 	return nil
 }
 

@@ -106,7 +106,46 @@ func TestMakeKeyMigrationAndRevocationEvent(t *testing.T) {
 }
 
 func TestValidateKeyMigrationAndRevocationEvent(t *testing.T) {
+	for _, vector := range []struct {
+		JSON string
+		ExpectedError string
+	}{
+		{
+			"{\"kind\":50,\"pubkey\":\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\",\"created_at\":1725402774,\"tags\":[[\"new-key\",\"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],[\"e\",\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"],[\"key-migration\"],[\"sigs\",\"439960df010db03e6147665ca589954b34ab38d16e5d74dfa1b98d4c5b3b54186ef327e1a0dcd910bc76119dc4bdbe51d235672c28ec652b35a42e363ceae565\",\"ca7b4a94be3f19161cc61dc896ab4210315abe982c52fa5ee1b53fae8ce8ea0b0c19afea5090aef4f96668bdf821ddd7deb50ecaa12ec44f563c34e4b7d6990c\",\"5751e438fb4d922dbba239868aa9248001a1209a6d9a17689bda40086540d41a831e230e3d7b27ef4b35380ebd4080337bbf41d2b98a1a02e66f8d6b13795198\"]],\"content\":\"This is an optional comment.\"}",
+			"",
+		},
+		{
+			"{\"kind\":49,\"pubkey\":\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\",\"created_at\":1725402774,\"tags\":[[\"new-key\",\"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],[\"e\",\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"],[\"key-migration\"],[\"sigs\",\"439960df010db03e6147665ca589954b34ab38d16e5d74dfa1b98d4c5b3b54186ef327e1a0dcd910bc76119dc4bdbe51d235672c28ec652b35a42e363ceae565\",\"ca7b4a94be3f19161cc61dc896ab4210315abe982c52fa5ee1b53fae8ce8ea0b0c19afea5090aef4f96668bdf821ddd7deb50ecaa12ec44f563c34e4b7d6990c\",\"5751e438fb4d922dbba239868aa9248001a1209a6d9a17689bda40086540d41a831e230e3d7b27ef4b35380ebd4080337bbf41d2b98a1a02e66f8d6b13795198\"]],\"content\":\"This is an optional comment.\"}",
+			"Invalid kind.",
+		},
+		{
+			"{\"kind\":50,\"pubkey\":\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\",\"created_at\":1725402774,\"tags\":[[\"new-key\",\"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],[\"e\",\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"],[\"sigs\",\"439960df010db03e6147665ca589954b34ab38d16e5d74dfa1b98d4c5b3b54186ef327e1a0dcd910bc76119dc4bdbe51d235672c28ec652b35a42e363ceae565\",\"ca7b4a94be3f19161cc61dc896ab4210315abe982c52fa5ee1b53fae8ce8ea0b0c19afea5090aef4f96668bdf821ddd7deb50ecaa12ec44f563c34e4b7d6990c\",\"5751e438fb4d922dbba239868aa9248001a1209a6d9a17689bda40086540d41a831e230e3d7b27ef4b35380ebd4080337bbf41d2b98a1a02e66f8d6b13795198\"]],\"content\":\"This is an optional comment.\"}",
+			"Must include migration safeguard tag.",
+		},
+		{
+			"{\"kind\":50,\"pubkey\":\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\",\"created_at\":1725402774,\"tags\":[[\"key-migration\"]],\"content\":\"This is an optional comment.\"}",
+			"Must include revocation safeguard tag.",
+		},
+		{
+			"{\"kind\":50,\"pubkey\":\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\",\"created_at\":1725402774,\"tags\":[[\"key-revocation\"]],\"content\":\"This is an optional comment.\"}",
+			"",
+		},
+	} {
+		var evt nostr.Event
+		err := json.Unmarshal([]byte(vector.JSON), &evt)
+		assert.Nil(t, err)
 
+		err = ValidateKeyMigrationAndRevocationEvent(&evt)
+
+		if vector.ExpectedError == "" {
+			// Valid
+			assert.Nil(t, err)
+		} else {
+			// Invalid
+			assert.NotNil(t, err)
+			assert.EqualErrorf(t, err, vector.ExpectedError, "Error message: %s", err)
+		}
+	}
 }
 
 func TestMakeRecoveryKeysSetup(t *testing.T) {
@@ -171,6 +210,10 @@ func TestValidateRecoveryKeysEvent(t *testing.T) {
 		},
 		{
 			"{\"kind\":51,\"created_at\":1725402764,\"tags\":[[\"p\",\"4fe17162aa42c96d7757f98cabc8a0b38ceb61a9160195b5d16bce6f6d8064ca\"],[\"p\",\"8b57adf363f3abed31ea6e0b664884af07e2a92611154599345f6a63f9c70f02\"],[\"p\",\"741a0fb3d23db2c87f82a9a979084893c3f094c47776c1283dd313331fc4b308\"],[\"threshold\",\"2\"],[\"recovery-keys-setup\", \"recovery-keys-setup\"]],\"content\":\"\"}",
+			"Safeguard must not include a value.",
+		},
+		{
+			"{\"kind\":51,\"created_at\":1725402764,\"tags\":[[\"p\",\"4fe17162aa42c96d7757f98cabc8a0b38ceb61a9160195b5d16bce6f6d8064ca\"],[\"p\",\"8b57adf363f3abed31ea6e0b664884af07e2a92611154599345f6a63f9c70f02\"],[\"p\",\"741a0fb3d23db2c87f82a9a979084893c3f094c47776c1283dd313331fc4b308\"],[\"threshold\",\"2\"],[\"recovery-keys-setup\"], [\"recovery-keys-setup\"]],\"content\":\"\"}",
 			"Must include one safeguard tag.",
 		},
 		{
@@ -187,7 +230,7 @@ func TestValidateRecoveryKeysEvent(t *testing.T) {
 		},
 		{
 			"{\"kind\":51,\"created_at\":1725402764,\"tags\":[[\"p\",\"4fe17162aa42c96d7757f98cabc8a0b38ceb61a9160195b5d16bce6f6d8064ca\"],[\"p\",\"8b57adf363f3abed31ea6e0b664884af07e2a92611154599345f6a63f9c70f02\"],[\"p\",\"741a0fb3d23db2c87f82a9a979084893c3f094c47776c1283dd313331fc4b308\"],[\"threshold\",\"wild string\"],[\"recovery-keys-setup\"]],\"content\":\"\"}",
-			"Threshold tag value must be a non-zero positive integer.",
+			"Threshold tag value must be an integer.",
 		},
 		{
 			"{\"kind\":51,\"created_at\":1725402764,\"tags\":[[\"p\",\"4fe17162aa42c96d7757f98cabc8a0b38ceb61a9160195b5d16bce6f6d8064ca\"],[\"p\",\"8b57adf363f3abed31ea6e0b664884af07e2a92611154599345f6a63f9c70f02\"],[\"p\",\"741a0fb3d23db2c87f82a9a979084893c3f094c47776c1283dd313331fc4b308\"],[\"recovery-keys-setup\"]],\"content\":\"\"}",
@@ -229,7 +272,8 @@ func TestValidateRecoveryKeysEvent(t *testing.T) {
 			assert.Nil(t, err)
 		} else {
 			// Invalid
-			assert.Errorf(t, err, vector.ExpectedError, err)
+			assert.NotNil(t, err)
+			assert.EqualErrorf(t, err, vector.ExpectedError, "Error message: %s", err)
 		}
 	}
 }
@@ -413,7 +457,8 @@ func TestValidateRecoveryKeysAttestationEvent(t *testing.T) {
 			assert.Nil(t, err)
 		} else {
 			// Invalid
-			assert.Errorf(t, err, vector.ExpectedError, err)
+			assert.NotNil(t, err)
+			assert.EqualErrorf(t, err, vector.ExpectedError, "Error message: %s", err)
 		}
 
 	}
