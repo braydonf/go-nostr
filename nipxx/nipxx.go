@@ -112,9 +112,53 @@ func EventAddMigrationSignatures(evt *nostr.Event, sigs []string) *nostr.Event {
 	return evt
 }
 
-func EventVerifySignatureExternal(evt *nostr.Event, pubkey string, sig string) bool {
-	// duplicate event, remove sig flags, serialize after for id
-	return false
+func duplicateEventWithoutTag(evt *nostr.Event, prefix []string) (*nostr.Event, error) {
+	tmp, err := json.Marshal(evt)
+	if err != nil {
+		return nil, err
+	}
+
+	var duplicate nostr.Event
+	err = json.Unmarshal(tmp, &duplicate)
+	if err != nil {
+		return nil, err
+	}
+
+	duplicate.Tags = duplicate.Tags.FilterOut([]string{"sigs"})
+
+	return &duplicate, nil
+}
+
+func EventVerifySignatureExternal(evt *nostr.Event, pubkey string, sig string) (bool, error) {
+	evtDuplicate, err := duplicateEventWithoutTag(evt, []string{"sigs"})
+	if err != nil {
+		return false, err
+	}
+
+	// Read and check pubkey.
+	pk, err := hex.DecodeString(pubkey)
+	if err != nil {
+		return false, errors.New("Invalid pubkey hex.")
+	}
+
+	schnorrPubKey, err := schnorr.ParsePubKey(pk)
+	if err != nil {
+		return false, errors.New("Invalid pubkey.")
+	}
+
+	// Read signature.
+	s, err := hex.DecodeString(sig)
+	if err != nil {
+		return false, errors.New("Invalid signature.")
+	}
+	schnorrSig, err := schnorr.ParseSignature(s)
+	if err != nil {
+		return false, errors.New("Invalid signature.")
+	}
+
+	// Check signature.
+	hash := sha256.Sum256(evtDuplicate.Serialize())
+	return schnorrSig.Verify(hash[:], schnorrPubKey), nil
 }
 
 func EventSignExternal(

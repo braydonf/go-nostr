@@ -63,7 +63,7 @@ func TestMakeKeyMigrationAndRevocationEvent(t *testing.T) {
 				"8b57adf363f3abed31ea6e0b664884af07e2a92611154599345f6a63f9c70f02",
 				"741a0fb3d23db2c87f82a9a979084893c3f094c47776c1283dd313331fc4b308",
 			},
-			"{\"kind\":50,\"id\":\"65d607fc433a642d3afd1ef945fa8d8b7738b5cc4a4ed46e416c1662e78f8ce0\",\"pubkey\":\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\",\"created_at\":1725402774,\"tags\":[[\"new-key\",\"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],[\"e\",\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"],[\"key-migration\"],[\"sigs\",\"439960df010db03e6147665ca589954b34ab38d16e5d74dfa1b98d4c5b3b54186ef327e1a0dcd910bc76119dc4bdbe51d235672c28ec652b35a42e363ceae565\",\"ca7b4a94be3f19161cc61dc896ab4210315abe982c52fa5ee1b53fae8ce8ea0b0c19afea5090aef4f96668bdf821ddd7deb50ecaa12ec44f563c34e4b7d6990c\",\"5751e438fb4d922dbba239868aa9248001a1209a6d9a17689bda40086540d41a831e230e3d7b27ef4b35380ebd4080337bbf41d2b98a1a02e66f8d6b13795198\"]],\"content\":\"This is an optional comment.\",\"sig\":\"b16baac3250c83aa02ebe51c08580c7f37a98ac36d40b1d2750b760fe45be34e5fce007e0675e72f92bb98205f8ea409a27ac44ee7b4578877723fe12c55fb65\"}",
+			"{\"kind\":50,\"id\":\"e9363b29992f64b0f0959e443a68496b04443099794b93278240754a203dfdde\",\"pubkey\":\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\",\"created_at\":1725402774,\"tags\":[[\"new-key\",\"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],[\"e\",\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"],[\"key-migration\"],[\"sigs\",\"c779261bb5058c79857660bc740ea905c219b791618c538bb5d370a231ecb2541583df639b30bfc48cc916b547b9fbbf32b1889d31f525aed840443972b1bde9\",\"1cfe8da92a4fb59de7964c16dc32fc2e59fac90940aae5adb79d23567d1d33ea90d58b8df660b3c162778ae7f5cc52aa293b36177751678dccb9dc4f62d16b48\",\"39d1e69fd308d8e288318b5c3a31fccef2ee6022f37fbc9a1ffef428e3d3d0995a47d5e8667395b2e56ed87870e5ad2f78f7000bb0bb6b3cfa4bbf7a37cef2e2\"]],\"content\":\"This is an optional comment.\",\"sig\":\"a20d5a2332a0056b19d2ac2977e97abdad8d626d036f29d4b0d07951b3a4097912870b41a8b73f629d6995c6c4faf64dc16c537ea64f4c25e6910f68a854a0d1\"}",
 		},
 	} {
 		s, err := hex.DecodeString(vector.PrivateKey)
@@ -72,7 +72,7 @@ func TestMakeKeyMigrationAndRevocationEvent(t *testing.T) {
 
 		// Make the migration event.
 		migration := MakeKeyMigrationAndRevocation(
-			hex.EncodeToString(pubkey.SerializeCompressed()),
+			hex.EncodeToString(pubkey.SerializeCompressed()[1:]),
 			vector.NewPubKey,
 			vector.RecoveryKeysSetupID,
 			vector.Comment)
@@ -145,6 +145,39 @@ func TestValidateKeyMigrationAndRevocationEvent(t *testing.T) {
 			assert.NotNil(t, err)
 			assert.EqualErrorf(t, err, vector.ExpectedError, "Error message: %s", err)
 		}
+	}
+}
+
+func TestEventVerifySignatureExternal(t *testing.T) {
+	for _, vector := range []struct {
+		Event string
+		PrivateKey string
+		ExpectedResult bool
+	} {
+		{
+			"{\"kind\":50,\"id\":\"e9363b29992f64b0f0959e443a68496b04443099794b93278240754a203dfdde\",\"pubkey\":\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\",\"created_at\":1725402774,\"tags\":[[\"new-key\",\"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],[\"e\",\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"],[\"key-migration\"],[\"sigs\",\"c779261bb5058c79857660bc740ea905c219b791618c538bb5d370a231ecb2541583df639b30bfc48cc916b547b9fbbf32b1889d31f525aed840443972b1bde9\",\"1cfe8da92a4fb59de7964c16dc32fc2e59fac90940aae5adb79d23567d1d33ea90d58b8df660b3c162778ae7f5cc52aa293b36177751678dccb9dc4f62d16b48\",\"39d1e69fd308d8e288318b5c3a31fccef2ee6022f37fbc9a1ffef428e3d3d0995a47d5e8667395b2e56ed87870e5ad2f78f7000bb0bb6b3cfa4bbf7a37cef2e2\"]],\"content\":\"This is an optional comment.\",\"sig\":\"a20d5a2332a0056b19d2ac2977e97abdad8d626d036f29d4b0d07951b3a4097912870b41a8b73f629d6995c6c4faf64dc16c537ea64f4c25e6910f68a854a0d1\"}",
+			"4fe17162aa42c96d7757f98cabc8a0b38ceb61a9160195b5d16bce6f6d8064ca",
+			true,
+		},
+	} {
+		var evt nostr.Event
+		err := json.Unmarshal([]byte(vector.Event), &evt)
+		assert.Nil(t, err)
+		assert.NotNil(t, evt)
+
+		sigs := evt.Tags.GetFirst([]string{"sigs"})
+		sig := sigs.Value()
+		assert.NotNil(t, sig)
+
+		s, err := hex.DecodeString(vector.PrivateKey)
+		assert.Nil(t, err)
+		_, pk := btcec.PrivKeyFromBytes(s)
+		pubkey := hex.EncodeToString(pk.SerializeCompressed()[1:])
+
+		result, err := EventVerifySignatureExternal(&evt, pubkey, sig)
+		assert.Nil(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, vector.ExpectedResult, result)
 	}
 }
 
