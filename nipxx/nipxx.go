@@ -6,14 +6,18 @@ import (
 	"fmt"
 	"strconv"
 	"encoding/json"
+	"encoding/hex"
 	"encoding/base64"
+
 	"github.com/nbd-wtf/go-nostr"
 	"github.com/nbd-wtf/go-nostr/nip44"
+	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 )
 
 const (
 	// Regular events.
-	KindKeyMigration int = 50
+	KindKeyMigrationAndRevocation int = 50
 	KindRecoveryKeysSetup int = 51
 
 	// Parameterized replaceable events (pubkey:kind:d-tag).
@@ -32,6 +36,7 @@ const (
 type KeyMigrationAndRevocation struct {
 	PubKey string
 	NewPubKey string
+	RecoveryKeysSetupID string
 	Comment string
 }
 
@@ -60,11 +65,13 @@ type RecoveryKeysAttestation struct {
 func MakeKeyMigrationAndRevocation(
 	pubKey string,
 	newPubKey string,
+	recoveryKeysSetupID string,
 	comment string) *KeyMigrationAndRevocation {
 
 	migration := &KeyMigrationAndRevocation{
 		PubKey: pubKey,
 		NewPubKey: newPubKey,
+		RecoveryKeysSetupID: recoveryKeysSetupID,
 		Comment: comment,
 	}
 
@@ -75,7 +82,70 @@ func MakeKeyMigrationAndRevocationEvent(
 	migration *KeyMigrationAndRevocation,
 	createdAt nostr.Timestamp) *nostr.Event {
 
-	return nil
+	evt := nostr.Event{}
+	evt.CreatedAt = createdAt
+	evt.Kind = KindKeyMigrationAndRevocation
+	evt.PubKey = migration.PubKey
+	evt.Content = migration.Comment
+
+	if len(migration.NewPubKey) > 0 {
+		evt.Tags = make([]nostr.Tag, 0, 3)
+		evt.Tags = evt.Tags.AppendUnique(nostr.Tag{"new-key", migration.NewPubKey})
+		evt.Tags = evt.Tags.AppendUnique(nostr.Tag{"e", migration.RecoveryKeysSetupID})
+		evt.Tags = evt.Tags.AppendUnique(nostr.Tag{SafeguardKeyMigration})
+	} else {
+		evt.Tags = evt.Tags.AppendUnique(nostr.Tag{SafeguardKeyRevocation})
+	}
+
+	return &evt
+}
+
+func EventAddMigrationSignatures(evt *nostr.Event, sigs []string) *nostr.Event {
+	tag := nostr.Tag{"sigs"}
+
+	for _, sig := range sigs {
+		tag = append(tag, sig)
+	}
+
+	evt.Tags = evt.Tags.AppendUnique(tag)
+
+	return evt
+}
+
+func EventVerifySignatureExternal(evt *nostr.Event, pubkey string, sig string) bool {
+	// duplicate event, remove sig flags, serialize after for id
+	return false
+}
+
+func EventSignExternal(
+	evt *nostr.Event,
+	privateKey string,
+	signOpts ...schnorr.SignOption) (string, error) {
+
+	s, err := hex.DecodeString(privateKey)
+	if err != nil {
+		return "", errors.New("Invalid private key.")
+	}
+
+	if len(evt.PubKey) == 0 {
+		return "", errors.New("Event missing public key.")
+	}
+
+	if evt.Tags == nil {
+		evt.Tags = make(nostr.Tags, 0)
+	}
+
+	sk, _ := btcec.PrivKeyFromBytes(s)
+
+	h := sha256.Sum256(evt.Serialize())
+	sig, err := schnorr.Sign(sk, h[:], signOpts...)
+	if err != nil {
+		return "", err
+	}
+
+	hex := hex.EncodeToString(sig.Serialize())
+
+	return hex, nil
 }
 
 func ValidateKeyMigrationAndRevocationEvent(evt *nostr.Event) error {

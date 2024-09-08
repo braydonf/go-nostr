@@ -6,38 +6,103 @@ import (
 	"encoding/hex"
 	"github.com/stretchr/testify/assert"
 	"github.com/nbd-wtf/go-nostr"
+	"github.com/btcsuite/btcd/btcec/v2"
 )
 
 func TestMakeKeyMigrationAndRevocation(t *testing.T) {
 	for _, vector := range []struct {
 		PubKey string
 		NewPubKey string
+		RecoveryKeysSetupID string
 		Comment string
 	}{
 		{
 			"0000000000000000000000000000000000000000000000000000000000000000",
 			"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+			"1111111111111111111111111111111111111111111111111111111111111111",
 			"This is an optional comment.",
 		},
 		{
 			"0000000000000000000000000000000000000000000000000000000000000000",
 			"",
+			"1111111111111111111111111111111111111111111111111111111111111111",
 			"There is no migration here, just a revocation.",
 		},
 	} {
 		migration := MakeKeyMigrationAndRevocation(
 			vector.PubKey,
 			vector.NewPubKey,
+			vector.RecoveryKeysSetupID,
 			vector.Comment)
 
 		assert.Equal(t, vector.PubKey, migration.PubKey)
 		assert.Equal(t, vector.NewPubKey, migration.NewPubKey)
+		assert.Equal(t, vector.RecoveryKeysSetupID, migration.RecoveryKeysSetupID)
 		assert.Equal(t, vector.Comment, migration.Comment)
 	}
 }
 
 func TestMakeKeyMigrationAndRevocationEvent(t *testing.T) {
+	for _, vector := range []struct {
+		PrivateKey string
+		NewPubKey string
+		Timestamp int64
+		Comment string
+		RecoveryKeysSetupID string
+		RecoveryPrivateKeys []string
+		ExpectedJSON string
+	}{
+		{
+			"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+			"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+			int64(1725402774),
+			"This is an optional comment.",
+			"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+			[]string{
+				"4fe17162aa42c96d7757f98cabc8a0b38ceb61a9160195b5d16bce6f6d8064ca",
+				"8b57adf363f3abed31ea6e0b664884af07e2a92611154599345f6a63f9c70f02",
+				"741a0fb3d23db2c87f82a9a979084893c3f094c47776c1283dd313331fc4b308",
+			},
+			"{\"kind\":50,\"id\":\"65d607fc433a642d3afd1ef945fa8d8b7738b5cc4a4ed46e416c1662e78f8ce0\",\"pubkey\":\"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af\",\"created_at\":1725402774,\"tags\":[[\"new-key\",\"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],[\"e\",\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"],[\"key-migration\"],[\"sigs\",\"439960df010db03e6147665ca589954b34ab38d16e5d74dfa1b98d4c5b3b54186ef327e1a0dcd910bc76119dc4bdbe51d235672c28ec652b35a42e363ceae565\",\"ca7b4a94be3f19161cc61dc896ab4210315abe982c52fa5ee1b53fae8ce8ea0b0c19afea5090aef4f96668bdf821ddd7deb50ecaa12ec44f563c34e4b7d6990c\",\"5751e438fb4d922dbba239868aa9248001a1209a6d9a17689bda40086540d41a831e230e3d7b27ef4b35380ebd4080337bbf41d2b98a1a02e66f8d6b13795198\"]],\"content\":\"This is an optional comment.\",\"sig\":\"b16baac3250c83aa02ebe51c08580c7f37a98ac36d40b1d2750b760fe45be34e5fce007e0675e72f92bb98205f8ea409a27ac44ee7b4578877723fe12c55fb65\"}",
+		},
+	} {
+		s, err := hex.DecodeString(vector.PrivateKey)
+		assert.Nil(t, err)
+		_, pubkey := btcec.PrivKeyFromBytes(s)
 
+		// Make the migration event.
+		migration := MakeKeyMigrationAndRevocation(
+			hex.EncodeToString(pubkey.SerializeCompressed()),
+			vector.NewPubKey,
+			vector.RecoveryKeysSetupID,
+			vector.Comment)
+
+		evt := MakeKeyMigrationAndRevocationEvent(migration, nostr.Timestamp(vector.Timestamp))
+		assert.NotNil(t, evt)
+
+		// Sign the event with all of the recovery keys.
+		lenSigs := len(vector.RecoveryPrivateKeys)
+		sigs := make([]string, lenSigs, lenSigs)
+		for i, privateKey := range vector.RecoveryPrivateKeys {
+			sig, err := EventSignExternal(evt, privateKey)
+			assert.Nil(t, err)
+			assert.NotEqual(t, sig, "")
+			sigs[i] = sig
+		}
+
+		// Add the sigs tag with all of the recovery signatures.
+		EventAddMigrationSignatures(evt, sigs)
+
+		// Sign the event.
+		err = evt.Sign(vector.PrivateKey)
+		assert.Nil(t, err)
+
+		// Verify the event is correctly constructed.
+		evtjson, err := json.Marshal(evt)
+
+		assert.Nil(t, err)
+		assert.Equal(t, vector.ExpectedJSON, string(evtjson))
+	}
 }
 
 func TestValidateKeyMigrationAndRevocationEvent(t *testing.T) {
