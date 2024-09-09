@@ -2,7 +2,6 @@ package nipxx
 
 import (
 	"crypto/sha256"
-	"errors"
 	"fmt"
 	"strconv"
 	"encoding/json"
@@ -138,22 +137,22 @@ func EventVerifySignatureExternal(evt *nostr.Event, pubkey string, sig string) (
 	// Read and check pubkey.
 	pk, err := hex.DecodeString(pubkey)
 	if err != nil {
-		return false, errors.New("Invalid pubkey hex.")
+		return false, fmt.Errorf("invalid pubkey hex")
 	}
 
 	schnorrPubKey, err := schnorr.ParsePubKey(pk)
 	if err != nil {
-		return false, errors.New("Invalid pubkey.")
+		return false, fmt.Errorf("invalid pubkey")
 	}
 
 	// Read signature.
 	s, err := hex.DecodeString(sig)
 	if err != nil {
-		return false, errors.New("Invalid signature.")
+		return false, fmt.Errorf("invalid signature")
 	}
 	schnorrSig, err := schnorr.ParseSignature(s)
 	if err != nil {
-		return false, errors.New("Invalid signature.")
+		return false, fmt.Errorf("invalid signature")
 	}
 
 	// Check signature.
@@ -168,11 +167,11 @@ func EventSignExternal(
 
 	s, err := hex.DecodeString(privateKey)
 	if err != nil {
-		return "", errors.New("Invalid private key.")
+		return "", fmt.Errorf("invalid private key")
 	}
 
 	if len(evt.PubKey) == 0 {
-		return "", errors.New("Event missing public key.")
+		return "", fmt.Errorf("event missing public key")
 	}
 
 	if evt.Tags == nil {
@@ -195,7 +194,7 @@ func EventSignExternal(
 func ValidateKeyMigrationAndRevocationEvent(evt *nostr.Event) error {
 	// Check the kind.
 	if evt.Kind != KindKeyMigrationAndRevocation {
-		return errors.New("Invalid kind.")
+		return fmt.Errorf("invalid kind")
 	}
 
 	newKey := evt.Tags.GetAll([]string{"new-key"})
@@ -205,19 +204,19 @@ func ValidateKeyMigrationAndRevocationEvent(evt *nostr.Event) error {
 	// isn't then this is only a revocation.
 	if len(newKey) > 0 {
 		if len(newKey) > 1 {
-			return errors.New("Must only include one new key.")
+			return fmt.Errorf("must only include one new key")
 		}
 
 		// Check the safeguard for a key migration as a new key is
 		// included with the event.
 		safeguardLength := len(evt.Tags.GetAll([]string{"key-migration"}))
 		if safeguardLength < 1 || safeguardLength > 1 {
-			return errors.New("Must include migration safeguard tag.")
+			return fmt.Errorf("must include migration safeguard tag")
 		}
 	} else {
 		safeguardLength := len(evt.Tags.GetAll([]string{"key-revocation"}))
 		if safeguardLength < 1 || safeguardLength > 1 {
-			return errors.New("Must include revocation safeguard tag.")
+			return fmt.Errorf("must include revocation safeguard tag")
 		}
 	}
 
@@ -312,7 +311,7 @@ func MakeRecoveryKeysAttestationEvent(
 func ValidateRecoveryKeysAttestationEvent(evt *nostr.Event) error {
 	// Check the kind.
 	if evt.Kind != KindRecoveryKeysAttestation {
-		return errors.New("Invalid kind.")
+		return fmt.Errorf("invalid kind")
 	}
 
 	// Check the safeguard tag to verify that it has
@@ -320,17 +319,17 @@ func ValidateRecoveryKeysAttestationEvent(evt *nostr.Event) error {
 	safeguard := evt.Tags.GetAll([]string{SafeguardRecoveryKeysAttestation})
 
 	if len(safeguard) != 1 {
-		return errors.New("Must include one safeguard tag.")
+		return fmt.Errorf("must include one safeguard tag")
 	}
 
 	if len(safeguard[0]) != 1 {
-		return errors.New("Safeguard must not include a value.")
+		return fmt.Errorf("safeguard must not include a value")
 	}
 
 	// Must include one d tag.
 	lenDtags := len(evt.Tags.GetAll([]string{"d"}))
 	if lenDtags == 0 || lenDtags > 1 {
-		return errors.New("Must include one d tag.")
+		return fmt.Errorf("must include one d tag")
 	}
 
 	if len(evt.Content) > 0 {
@@ -338,19 +337,19 @@ func ValidateRecoveryKeysAttestationEvent(evt *nostr.Event) error {
 		if len(evt.Tags.GetAll([]string{"p"})) > 0 ||
 			len(evt.Tags.GetAll([]string{"e"})) > 0 ||
 			len(evt.Tags.GetAll([]string{"setup"})) > 0 {
-			return errors.New("Private attestation must not include public tags.")
+			return fmt.Errorf("private attestation must not include public tags")
 		}
 
 		// Content, if available, must be base64 encoded.
 		_, err := base64.StdEncoding.DecodeString(evt.Content)
 		if err != nil {
-			return errors.New("Private content must be base64.")
+			return fmt.Errorf("private content must be base64")
 		}
 	} else {
 		if len(evt.Tags.GetAll([]string{"p"})) == 0 ||
 			len(evt.Tags.GetAll([]string{"e"})) == 0 ||
 			len(evt.Tags.GetAll([]string{"setup"})) == 0 {
-			return errors.New("Public attestation must include public tags.")
+			return fmt.Errorf("public attestation must include public tags")
 		}
 	}
 
@@ -400,7 +399,7 @@ func MakeRecoveryKeysSetup(
 func ValidateRecoveryKeysEvent(evt *nostr.Event) error {
 	// Check the kind.
 	if evt.Kind != KindRecoveryKeysSetup {
-		return errors.New("Invalid kind.")
+		return fmt.Errorf("invalid kind")
 	}
 
 	// Check the safeguard tag to verify that it has
@@ -408,11 +407,11 @@ func ValidateRecoveryKeysEvent(evt *nostr.Event) error {
 	safeguard := evt.Tags.GetAll([]string{SafeguardRecoveryKeysSetup})
 
 	if len(safeguard) != 1 {
-		return errors.New("Must include one safeguard tag.")
+		return fmt.Errorf("must include one safeguard tag")
 	}
 
 	if len(safeguard[0]) != 1 {
-		return errors.New("Safeguard must not include a value.")
+		return fmt.Errorf("safeguard must not include a value")
 	}
 
 	// Check that the threshold tag has been included
@@ -420,21 +419,21 @@ func ValidateRecoveryKeysEvent(evt *nostr.Event) error {
 	thresholds := evt.Tags.GetAll([]string{"threshold"})
 
 	if len(thresholds) != 1 {
-		return errors.New("Must include one threshold tag.")
+		return fmt.Errorf("must include one threshold tag")
 	}
 
 	if len(thresholds[0]) != 2 {
-		return errors.New("Threshold tag must include only one value.")
+		return fmt.Errorf("threshold tag must include only one value")
 	}
 
 	threshold, err := strconv.Atoi(thresholds[0][1])
 
 	if err != nil {
-		return errors.New("Threshold tag value must be an integer.")
+		return fmt.Errorf("threshold tag value must be an integer")
 	}
 
 	if threshold <= 0 {
-		return errors.New("Threshold tag value must be a non-zero positive integer.")
+		return fmt.Errorf("threshold tag value must be a non-zero positive integer")
 	}
 
 	// Check that, at a minimum, one recovery pubkey has been included
@@ -442,7 +441,7 @@ func ValidateRecoveryKeysEvent(evt *nostr.Event) error {
 	pubkeys := evt.Tags.GetAll([]string{"p"})
 
 	if len(pubkeys) < 1 {
-		return errors.New("Must include one or more recovery pubkeys.")
+		return fmt.Errorf("must include one or more recovery pubkeys")
 	}
 
 	return nil
