@@ -3,6 +3,7 @@ package nipxx
 import (
 	"crypto/sha256"
 	"fmt"
+	"strconv"
 	"encoding/json"
 	"encoding/hex"
 
@@ -10,6 +11,58 @@ import (
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 )
+
+type MigrationKeys struct {
+	Threshold int
+	PubKeys []string
+}
+
+func (k *MigrationKeys) MarshalJSON() ([]byte, error) {
+	arr := make([]string, 0, 1 + len(k.PubKeys))
+	arr = append(arr, strconv.Itoa(k.Threshold))
+
+	for _, key := range k.PubKeys {
+		arr = append(arr, key)
+	}
+
+	return json.Marshal(arr)
+}
+
+func (k *MigrationKeys) UnmarshalJSON(input []byte) error {
+	arr := []interface{}{}
+	json.Unmarshal(input, &arr)
+
+	if len(arr) <= 1 {
+		return fmt.Errorf("not enough values")
+	}
+
+	switch val := arr[0].(type) {
+	case float64:
+		k.Threshold = int(val)
+	case string:
+		t, err := strconv.ParseInt(val, 10, 64)
+		if err != nil {
+			return err
+		}
+		k.Threshold = int(t)
+	default:
+		fmt.Errorf("must include threshold number")
+	}
+
+	for _, key := range arr[1:] {
+		switch val := key.(type) {
+		case string:
+			if len(val) != 64 {
+				return fmt.Errorf("pubkey must be 32-bytes")
+			}
+			k.PubKeys = append(k.PubKeys, val)
+		default:
+			fmt.Errorf("pubkey must be a string")
+		}
+	}
+
+	return nil
+}
 
 func EventSignExternal(
 	evt *nostr.Event,
