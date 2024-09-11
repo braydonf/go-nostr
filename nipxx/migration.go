@@ -96,7 +96,7 @@ func EventSignExternal(
 }
 
 func EventVerifySignatureExternal(evt *nostr.Event, pubkey string, sig string) (bool, error) {
-	evtDuplicate, err := duplicateEventWithoutTag(evt, []string{"sigs"})
+	evtDuplicate, err := duplicateEventWithoutTag(evt, []string{"migration-sigs"})
 	if err != nil {
 		return false, err
 	}

@@ -74,7 +74,7 @@ func TestEventVerifySignatureExternal(t *testing.T) {
 		Result bool
 	}{
 		{
-			"{\"kind\":50,\"pubkey\":\"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\",\"created_at\":1725402774,\"tags\":[[\"successor-key\",\"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],[\"key-revocation\"],[\"sigs\"]],\"content\":\"This is an optional comment.\"}",
+			"{\"kind\":50,\"pubkey\":\"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\",\"created_at\":1725402774,\"tags\":[[\"successor-key\",\"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],[\"key-revocation\"],[\"migration-sigs\"]],\"content\":\"This is an optional comment.\"}",
 			"9166c289b9f905e55f9e3df9f69d7f356b4a22095f894f4715714aa4b56606af",
 			"22c3087c7cab53a4e4374fd6f9447404cb8b3a2bf2d014ee8892110267fb0551ca662cb52697286cededf0f7d2ad9f36626b6b711b26b63e97cfff392dcb58d0",
 			true,
